@@ -268,13 +268,13 @@ These screenshots show the expected setup flow for **Moodle 4.5.7+ (Build 202511
 
 | Step | Description | Screenshot |
 | --- | --- | --- |
-| 1 | Moodle installation welcome screen | [Moodle Installation – screen 1](moodle-fresh-install/blob/main/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%201.png) |
-| 2 | Environment checks and dependency validation | [Moodle Installation – screen 2](moodle-fresh-install/blob/main/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%202.png) |
-| 3-1 | Database configuration input page | [Moodle Installation – screen 3-1](moodle-fresh-install/blob/main/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%203-1.png) |
-| 3-2 | Database setup progress page | [Moodle Installation – screen 3-2](moodle-fresh-install/blob/main/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%203-2.png) |
-| 4 | Admin user creation and site settings page | [Moodle Installation – screen 4](moodle-fresh-install/blob/main//screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%204.png) |
-| 5 | Initial Moodle dashboard after installation | [Moodle Installation – screen 5](moodle-fresh-install/blob/main/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%205.png) |
-| 6 | Final site home page (installation complete) | [Moodle Installation – screen 6](moodle-fresh-install/blob/main/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%206.png) |
+| 1 | Moodle installation welcome screen | [Moodle Installation – screen 1](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%201.png) |
+| 2 | Environment checks and dependency validation | [Moodle Installation – screen 2](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%202.png) |
+| 3-1 | Database configuration input page | [Moodle Installation – screen 3-1](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%203-1.png) |
+| 3-2 | Database setup progress page | [Moodle Installation – screen 3-2](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%203-2.png) |
+| 4 | Admin user creation and site settings page | [Moodle Installation – screen 4](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%204.png) |
+| 5 | Initial Moodle dashboard after installation | [Moodle Installation – screen 5](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%205.png) |
+| 6 | Final site home page (installation complete) | [Moodle Installation – screen 6](/screenshots/Moodle%20Installation%20_%204.5.7%2B%20(Build_%2020251107)%20-%20screen%206.png) |
 
 ---
 
