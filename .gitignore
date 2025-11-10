@@ -5,6 +5,10 @@
 *.backup
 backend.tf
 
+# Cert/key
+*.crt
+*.key
+
 # .vscode 
 **/.vscode/*
 
