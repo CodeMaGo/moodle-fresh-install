@@ -2,7 +2,7 @@ terraform  {
     backend "azurerm" { 
         resource_group_name = "your-azure-resource-group" 
         storage_account_name = "terraformstatestorage"
-         container_name = "terraformstatecontainer" 
-         key = "your-terraform-state-file.tfstate" // unique name for this project's state file - can't use variables 
+        container_name = "terraformstatecontainer" 
+        key = "your-terraform-state-file.tfstate" // unique name for this project's state file - can't use variables 
     } 
 }
