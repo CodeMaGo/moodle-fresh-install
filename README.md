@@ -71,9 +71,9 @@ terraform-moodle/
 ├── cloud-init.yaml       # Cloud-init bootstrap (Docker, Moodle, SSL setup)
 ├── terraform.tfvars.example # Example terrform.tfvars file   
 └── assets/
-    ├── certs/
-    │   ├── wildcard-ssl.crt
-    │   └── wildcard-ssl.key
+    ├── certs/                # Create this folder and add your wildcard-ssl.crt and wildcard-ssl.key files
+    │   ├── wildcard-ssl.crt  #If you change the name of your .crt file, make sure you change the name in cloud-init.yaml
+    │   └── wildcard-ssl.key  #If you change the name of your .key file, make sure you change the name in cloud-init.yaml
     ├── apache-conf/
     │   └── site.conf
     └── moodle-conf/
