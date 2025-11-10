@@ -31,7 +31,7 @@ It automates:
 ## 🧱 Architecture
 
 ```
-                   ┌─────────────────────────────┐
+                   ┌──────────────────────────────┐
                    │        Azure Key Vault       │
                    │  - hcloud-api-token          │
                    │  - DB credentials            │
@@ -143,13 +143,13 @@ cd terraform-hetzner-moodle
 ### 2. Update backend configuration (`backend.tf`)
 
 ```hcl
-terraform {
-  backend "azurerm" {
-    resource_group_name  = "your-rg"
-    storage_account_name = "yourtfstateacct"
-    container_name       = "tfstate"
-    key                  = "moodle.tfstate"
-  }
+terraform  { 
+    backend "azurerm" { 
+        resource_group_name = "your-azure-resource-group" 
+        storage_account_name = "terraformstatestorage"
+        container_name = "terraformstatecontainer" 
+        key = "your-terraform-state-file.tfstate" // unique name for this project's state file - can't use variables 
+    } 
 }
 
 ```
