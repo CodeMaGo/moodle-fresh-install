@@ -1,0 +1,116 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+write_files:
+  # SSL Certificate
+  - path: /opt/${app_name}/certs/wildcart-ssl.crt.b64
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${ssl_crt_content_b64}
+
+  # SSL Key
+  - path: /opt/${app_name}/certs/wildcart-ssl.key.b64
+    permissions: '0600'
+    owner: root:root
+    content: |
+      ${ssl_key_content_b64}
+
+  # Apache Config
+  - path: /opt/${app_name}/apache-conf/${app_name}.conf.b64
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${apache_conf_b64}
+
+  # Moodle config.php
+  - path: /opt/${app_name}/moodle-conf/config.php.b64
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${moodle_conf_php_b64}
+
+  # Docker Compose
+  - path: /opt/${app_name}/docker-compose.yml
+    permissions: '0644'
+    owner: root:root
+    content: |
+      services:
+        mariadb:
+          image: mariadb:latest
+          restart: unless-stopped
+          environment:
+            MYSQL_DATABASE: ${db_database}
+            MYSQL_USER: ${db_user}
+            MYSQL_PASSWORD: ${db_password}
+            MYSQL_ROOT_PASSWORD: ${db_root_password}
+          volumes:
+            - mariadb_data:/var/lib/mysql
+          healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+        app:
+          image: moodlehq/moodle-php-apache:8.3
+          restart: unless-stopped
+          depends_on:
+            mariadb:
+              condition: service_healthy
+          ports:
+            - "80:80"
+            - "443:443"
+          environment:
+            # Database connection
+            MOODLE_DBTYPE: mariadb
+            MOODLE_DB_HOST: mariadb
+            MOODLE_DB_NAME: ${db_database}
+            MOODLE_DB_USER: ${db_user}
+            MOODLE_DB_PASSWORD: ${db_password}
+            MOODLE_DOCKER_WWWROOT: /var/www/html
+            MOODLE_DOCKER_DATAROOT: /var/www/moodledata
+            MOODLE_APP_URL: ${app_url}
+            MOODLE_SERVER_NAME: ${app_fqdn}
+            MOODLE_APP_NAME: ${app_name}
+            APACHE_DOCUMENT_ROOT: /var/www/html
+            APACHE_LOG_DIR: /var/log/apache2
+          volumes:
+            - moodledata:/var/www/moodledata
+            - /opt/${app_name}/${app_name}:/var/www/html
+            - storage:/var/lib/${app_name}
+            - ./certs/wildcart-ssl.crt:/var/lib/${app_name}/ssl/wildcard-ssl.crt:ro
+            - ./certs/wildcart-ssl.key:/var/lib/${app_name}/ssl/wildcard-ssl.key:ro
+            - ./apache-conf/${app_name}.conf:/etc/apache2/sites-available/${app_name}.conf:ro
+            - ./moodle-conf/config.php:/var/www/html/config.php:ro
+          command: >
+            /bin/bash -c "
+            a2enmod ssl &&
+            a2dissite 000-default.conf &&
+            a2ensite ${app_name}.conf &&
+            apache2ctl -D FOREGROUND"
+
+      volumes:
+        mariadb_data:
+        moodledata:
+        storage:
+
+runcmd:
+  - mkdir -p /opt/${app_name}/certs /opt/${app_name}/apache-conf
+  # Decode base64 files back to real .crt/.key
+  - base64 -d /opt/${app_name}/certs/wildcart-ssl.crt.b64 > /opt/${app_name}/certs/wildcart-ssl.crt
+  - base64 -d /opt/${app_name}/certs/wildcart-ssl.key.b64 > /opt/${app_name}/certs/wildcart-ssl.key
+  - chmod 600 /opt/${app_name}/certs/wildcart-ssl.key
+  - chmod 644 /opt/${app_name}/certs/wildcart-ssl.crt
+  - base64 -d /opt/${app_name}/apache-conf/${app_name}.conf.b64 > /opt/${app_name}/apache-conf/${app_name}.conf
+  - base64 -d /opt/${app_name}/moodle-conf/config.php.b64 > /opt/${app_name}/moodle-conf/config.php
+  # Install Docker and Docker Compose
+  - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  - curl -fsSL https://get.docker.com | bash
+  - systemctl enable docker
+  - systemctl start docker
+  - apt-get install -y docker-compose-plugin
+  - cd /opt/${app_name}
+  - git clone -b MOODLE_405_STABLE https://github.com/moodle/moodle.git ${app_name}
+  - docker compose up -d

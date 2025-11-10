@@ -1,0 +1,181 @@
+
+# ------------------------------
+# Hetzner Configuration
+# ------------------------------
+variable "resource_prefix" {
+  description = "Prefix for resource names"
+  type        = string
+}
+
+variable "location" {
+  description = "Hetzner location/datacenter (e.g. nbg1, fsn1, hel1)"
+  type        = string
+  default     = "nbg1"
+}
+
+variable "network_zone" {
+  description = "Hetzner network zone corresponding to location (e.g. eu-central for nbg1, fsn1, hel1)"
+  type        = string
+  default     = "eu-central"
+}
+
+variable "app_url" {
+  description = "The URL where Snipe-IT will be accessible"
+  type        = string
+}
+
+# ------------------------------
+# Existing Resources  
+# ------------------------------
+
+variable "existing_ssh_key_name" { 
+  description = "Name of the SSH Key in Hetzner"
+  type        = string  
+}
+
+variable "admin_username" {
+  description = "Admin username for the VM"
+  type        = string
+}
+
+# ------------------------------
+# VM Configuration 
+# ------------------------------
+variable "vm_server_name" {
+  description = "Name of the Hetzner server"
+  type        = string
+  default     = "snipe-it-server"
+}
+
+variable "vm_server_type" {
+  description = "Hetzner server type (e.g. cx11, cx21, cpx11)"
+  type        = string
+  default     = "cx21"
+}
+
+variable "vm_server_image" {
+  description = "Server image (e.g. ubuntu-22.04)"
+  type        = string
+  default     = "ubuntu-22.04"
+}
+
+variable "vm_domain_name_label" {
+  description = "Custom sub-domain label for the VM's FQDN"
+  type        = string
+}
+
+# optional specific private IP for the server inside private network; set to null to auto-assign
+variable "vm_server_private_ip" {
+  description = "Specific private IP to assign inside the private network (optional)"
+  type        = string
+  default     = null
+}
+
+# --- Floating/Public IP ---
+variable "vm_assign_floating_ip" {
+  description = "Whether to create and assign a Floating IP"
+  type        = bool
+  default     = true
+}
+
+# --- Firewall rules (simple SSH & HTTP example) ---
+variable "vm_allow_ssh" {
+  type    = bool
+  default = true
+}
+
+variable "vm_allow_http" {
+  type    = bool
+  default = true
+}
+
+# ------------------------------
+# Database Configuration   
+# ------------------------------
+variable "mysql_database" {
+  description = "Name of the Snipe-IT MySQL database"
+  type        = string
+}
+
+variable "mysql_user" {
+  description = "Database username for Snipe-IT"
+  type        = string
+}
+
+variable "mysql_password" {
+  description = "Database user password for Snipe-IT"
+  type        = string
+  sensitive   = true
+}
+
+variable "mysql_root_password" {
+  description = "Root password for MySQL"
+  type        = string
+  sensitive   = true
+}
+
+# ------------------------------
+# Mail Configuration
+# ------------------------------
+variable "mail_mailer" {
+  description = "Mail driver to use (e.g., smtp, sendmail, log)"
+  type        = string
+  default     = "smtp"
+}
+
+variable "mail_host" {
+  description = "SMTP mail host"
+  type        = string
+  default     = "smtp.gmail.com"
+}
+
+variable "mail_port" {
+  description = "SMTP mail port"
+  type        = number
+  default     = 587
+}
+
+variable "mail_username" {
+  description = "SMTP username or email address"
+  type        = string
+}
+
+variable "mail_password" {
+  description = "SMTP password or app-specific password"
+  type        = string
+  sensitive   = true
+}
+
+variable "mail_tls_verify_peer" {
+  description = "Whether to verify TLS peer certificate"
+  type        = bool
+  default     = true
+}
+
+variable "mail_from_addr" {
+  description = "Default From email address for Snipe-IT"
+  type        = string
+}
+
+variable "mail_from_name" {
+  description = "Default From name for Snipe-IT"
+  type        = string
+  default     = "Snipe-IT"
+}
+
+variable "mail_replyto_addr" {
+  description = "Reply-To email address for Snipe-IT notifications"
+  type        = string
+}
+
+variable "mail_replyto_name" {
+  description = "Reply-To display name"
+  type        = string
+  default     = "Snipe-IT"
+}
+
+variable "mail_auto_embed_method" {
+  description = "Attachment handling method (e.g., 'attachment' or 'inline')"
+  type        = string
+  default     = "attachment"
+}

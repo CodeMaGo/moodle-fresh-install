@@ -1,0 +1,189 @@
+# ---------------------------------------
+# Hetzner Cloud Snipe-IT Deployment
+# Read the README.md for details
+# ---------------------------------------
+
+
+# ---------------------------------------
+# Hetzner Cloud Provider Token from Azure Key Vault
+# ---------------------------------------
+data "azurerm_key_vault" "azure_kv"{
+  name                = "SharedInfra"
+  resource_group_name = "infosec_rg"
+}
+
+data "azurerm_key_vault_secret" "hcloud_api_token" {
+  name         = "hcloud-api-token"
+  key_vault_id = data.azurerm_key_vault.azure_kv.id
+}
+
+# ---------------------------------------
+# Network & SSH Key
+# ---------------------------------------
+data "hcloud_ssh_key" "ssh_key" {
+  name = var.existing_ssh_key_name
+}
+
+resource "hcloud_network" "private" {
+  name     = "${var.resource_prefix}-vnet"
+  ip_range = "10.0.0.0/16"
+}
+
+resource "hcloud_network_subnet" "private_subnet" {
+  network_id   = hcloud_network.private.id
+  type         = "cloud"
+  network_zone = var.network_zone # corresponds to nbg1, fsn1, hel1
+  ip_range     = "10.0.1.0/24"
+}
+
+# ---------------------------------------
+# Hetzner Cloud Server (VM) for Snipe-IT
+# ---------------------------------------
+resource "hcloud_server" "snipeit" {
+  name        = var.vm_server_name
+  server_type = var.vm_server_type
+  image       = var.vm_server_image
+  location    = var.location
+
+  # attach ssh key if one is provided
+  ssh_keys = var.existing_ssh_key_name != "" ? [data.hcloud_ssh_key.ssh_key.id] : []
+
+  # attach to private network; optionally request a specific private IP (helps pick subnet)
+  dynamic "network" {
+    for_each = [hcloud_network.private]
+    content {
+      network_id = network.value.id
+      # If you want to request a specific IP inside the private network's subnet, set server_private_ip
+      #ip = var.server_private_ip
+    }
+  }
+  depends_on = [hcloud_network_subnet.private_subnet]
+
+  user_data = local.rendered_cloud_init
+  
+  # ensure ephemeral/detachable disks behavior per needs:
+  keep_disk = false
+  labels = {
+    "role" = "snipe-it"
+  }
+}
+
+# ---------------------------------------
+# Firewall (acts like NSG) with SSH & HTTP rules
+# ---------------------------------------
+resource "hcloud_firewall" "nsg" {
+  name = "${var.vm_server_name}-fw"
+
+  dynamic "rule" {
+    for_each = [
+      var.vm_allow_ssh ? {
+        direction = "in"
+        protocol  = "tcp"
+        port      = "22"
+        source_ips = ["0.0.0.0/0"]
+        description = "Allow SSH"
+      } : null,
+      var.vm_allow_http ? {
+        direction = "in"
+        protocol  = "tcp"
+        port      = "80"
+        source_ips = ["0.0.0.0/0"]
+        description = "Allow HTTP"
+      } : null,
+      var.vm_allow_http ? {
+        direction = "in"
+        protocol  = "tcp"
+        port      = "443"
+        source_ips = ["0.0.0.0/0"]
+        description = "Allow HTTPS"
+      } : null
+    ]
+    content {
+      direction   = rule.value.direction
+      protocol    = rule.value.protocol
+      port        = rule.value.port
+      source_ips  = rule.value.source_ips
+      description = rule.value.description
+    }
+  }
+}
+
+# Attach firewall to server
+resource "hcloud_firewall_attachment" "attach" {
+  firewall_id = hcloud_firewall.nsg.id
+  server_ids   = [hcloud_server.snipeit.id]
+}
+
+# ---------------------------------------
+# Create Floating IP (public IP) and assign to server
+# ---------------------------------------
+resource "hcloud_floating_ip" "fip" {
+  count = var.vm_assign_floating_ip ? 1 : 0
+  type  = "ipv4"
+  home_location = var.location
+  server_id = hcloud_server.snipeit.id
+}
+
+# Optional: random password (if you need an app key / password like your Azure config had)
+# resource "random_password" "app_key" {
+#   length           = 32
+#   override_special  = "!@#$%&*()-_+=<>?"
+# }
+
+# Laravel app key for Snipe-IT requires 32 bytes base64-encoded
+resource "random_id" "app_key" {
+  byte_length = 32
+}
+
+# -------------------------------
+# Cloud-init Script
+# -------------------------------
+locals {
+  ssl_crt_content_b64 = base64encode(file("${path.module}/assets/certs/snipeit-ssl.crt"))
+  ssl_key_content_b64 = base64encode(file("${path.module}/assets/certs/snipeit-ssl.key"))
+  snipeit_apache_conf_b64 = base64encode(file("${path.module}/assets/apache-conf/snipeit.conf"))
+
+  rendered_cloud_init = templatefile("${path.module}/cloud-init.yaml", {
+    ssl_crt_content_b64         = local.ssl_crt_content_b64
+    ssl_key_content_b64         = local.ssl_key_content_b64
+    snipeit_apache_conf_b64     = local.snipeit_apache_conf_b64
+    mysql_database          = var.mysql_database
+    mysql_user              = var.mysql_user
+    mysql_password          = var.mysql_password
+    mysql_root_password     = var.mysql_root_password
+    app_key                 = "base64:${random_id.app_key.b64_std}" 
+    app_url                 = var.app_url
+    mail_mailer             = var.mail_mailer
+    mail_host               = var.mail_host
+    mail_port               = var.mail_port
+    mail_username           = var.mail_username
+    mail_password           = var.mail_password
+    mail_tls_verify_peer    = var.mail_tls_verify_peer
+    mail_from_addr          = var.mail_from_addr
+    mail_from_name          = var.mail_from_name
+    mail_replyto_addr       = var.mail_replyto_addr
+    mail_replyto_name       = var.mail_replyto_name
+    mail_auto_embed_method  = var.mail_auto_embed_method
+  })
+}
+
+# -------------------------------
+# Outputs
+# -------------------------------
+
+# Hetzner doesn't create DNS records automatically. Use vm_domain_name_label + app_url to present a suggested FQDN.
+output "fqdn" {
+  value = var.app_url 
+  description = "Suggested FQDN (please create an A record pointing to the public IP). Empty if vm_domain_name_label or app_url not set."
+}
+
+output "public_ip" {
+  value = coalesce(
+    try(hcloud_floating_ip.fip[0].ip_address, null),
+    try(hcloud_server.snipeit.public_net[*].ip_address[0], null)
+  )
+}
+
+output "private_ip" {
+  value = try(hcloud_server.snipeit.network[*].ip[0], null)
+}

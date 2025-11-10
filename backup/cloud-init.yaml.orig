@@ -1,0 +1,122 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+write_files:
+  # SSL Certificate
+  - path: /opt/snipeit/certs/snipeit-ssl.crt.b64
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${ssl_crt_content_b64}
+
+  # SSL Key
+  - path: /opt/snipeit/certs/snipeit-ssl.key.b64
+    permissions: '0600'
+    owner: root:root
+    content: |
+      ${ssl_key_content_b64}
+
+  # Apache Config
+  - path: /opt/snipeit/apache-conf/snipeit.conf.b64
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${snipeit_apache_conf_b64}
+
+  # Environment File
+  - path: /opt/snipeit/mycustomenv.docker
+    permissions: '0644'
+    owner: root:root
+    content: |
+      APP_DEBUG=false
+      APP_KEY=${app_key}
+      APP_URL=${app_url}
+      APP_TIMEZONE=UTC
+      APP_LOCALE=en-GB
+      DB_HOST=db
+      DB_DATABASE=${mysql_database}
+      DB_USERNAME=${mysql_user}
+      DB_PASSWORD=${mysql_password}
+      MAIL_MAILER=${mail_mailer}
+      MAIL_HOST=${mail_host}
+      MAIL_PORT=${mail_port}
+      MAIL_USERNAME=${mail_username}
+      MAIL_PASSWORD=${mail_password}
+      MAIL_TLS_VERIFY_PEER=${mail_tls_verify_peer}
+      MAIL_FROM_ADDR=${mail_from_addr}
+      MAIL_FROM_NAME=${mail_from_name}
+      MAIL_REPLYTO_ADDR=${mail_replyto_addr}
+      MAIL_REPLYTO_NAME=${mail_replyto_name}
+      MAIL_AUTO_EMBED_METHOD=${mail_auto_embed_method}
+
+  # Docker Compose
+  - path: /opt/snipeit/docker-compose.yml
+    permissions: '0644'
+    owner: root:root
+    content: |
+      version: "3.8"
+
+      volumes:
+        db_data:
+        storage:
+
+      services:
+        app:
+          image: snipe/snipe-it:$${APP_VERSION:-latest}
+          restart: unless-stopped
+          volumes:
+            - storage:/var/lib/snipeit
+            - ./certs/snipeit-ssl.crt:/var/lib/snipeit/ssl/snipeit-ssl.crt:ro
+            - ./certs/snipeit-ssl.key:/var/lib/snipeit/ssl/snipeit-ssl.key:ro
+            - ./apache-conf/snipeit.conf:/etc/apache2/sites-available/snipeit.conf:ro
+          ports:
+            - 80:80
+            - 443:443
+          depends_on:
+            db:
+              condition: service_healthy
+              restart: true
+          env_file:
+            - mycustomenv.docker
+          command: >
+            /bin/bash -c "
+            mkdir -p /var/lib/snipeit/data/uploads &&
+            a2dissite 000-default.conf &&
+            a2dissite 001-default-ssl.conf &&
+            a2ensite snipeit.conf &&
+            apache2ctl -D FOREGROUND"
+
+        db:
+          image: mariadb:11.5.2
+          restart: unless-stopped
+          volumes:
+            - db_data:/var/lib/mysql
+          environment:
+            MYSQL_DATABASE: ${mysql_database}
+            MYSQL_USER: ${mysql_user}
+            MYSQL_PASSWORD: ${mysql_password}
+            MYSQL_ROOT_PASSWORD: ${mysql_root_password}
+          healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            interval: 5s
+            timeout: 1s
+            retries: 5
+
+runcmd:
+  - mkdir -p /opt/snipeit/certs /opt/snipeit/apache-conf
+  # Decode base64 files back to real .crt/.key
+  - base64 -d /opt/snipeit/certs/snipeit-ssl.crt.b64 > /opt/snipeit/certs/snipeit-ssl.crt
+  - base64 -d /opt/snipeit/certs/snipeit-ssl.key.b64 > /opt/snipeit/certs/snipeit-ssl.key
+  - chmod 600 /opt/snipeit/certs/snipeit-ssl.key
+  - chmod 644 /opt/snipeit/certs/snipeit-ssl.crt
+  - base64 -d /opt/snipeit/apache-conf/snipeit.conf.b64 > /opt/snipeit/apache-conf/snipeit.conf
+  # Install Docker and Docker Compose
+  - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  - curl -fsSL https://get.docker.com | bash
+  - systemctl enable docker
+  - systemctl start docker
+  - apt-get install -y docker-compose-plugin
+  - cd /opt/snipeit
+  - docker compose up -d
+  - docker exec snipeit-app-1 bash -c "mkdir -p /var/lib/snipeit/data/uploads"

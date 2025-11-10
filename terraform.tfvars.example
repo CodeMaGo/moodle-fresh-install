@@ -1,0 +1,21 @@
+app_fqdn = "your-moodle-domain.org"
+app_name = "moodle"
+location               = "nbg1"       # e.g., nbg1, fsn1, hel1
+network_zone           = "eu-central" # corresponds to nbg1, fsn1, hel1
+resource_prefix        = "yourprefix" # used for naming resources
+existing_ssh_key_name  = "existing-keypair-name-in-hetzner" # SSH keypair name already uploaded to Hetzner
+# VM Configuration
+vm_server_type         = "cax11"   # e.g., cpx11, cax11, ccx11
+vm_server_image        = "ubuntu-22.04" # e.g., ubuntu-20.04, ubuntu-22.04
+vm_server_name         = "your-moodle-server" # Name of the VM
+vm_assign_floating_ip  = true
+vm_allow_ssh           = true
+vm_allow_http          = true
+vm_allow_https          = true
+# Database Configuration
+db_database         = "moodle"
+db_user             = "moodleuser"
+db_password         = "yourdbpassword" # TODO: Move to Key Vault secret
+db_root_password    = "yourdbrootpassword"  # TODO: Move to Key Vault secret
+
+
